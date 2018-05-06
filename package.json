@@ -1,21 +1,31 @@
 {
-  "name": "collector",
-  "version": "0.0.1",
-  "private": true,
-  "scripts": {
-    "start": "node ./bin/www"
-  },
-  "dependencies": {
-    "cookie-parser": "~1.4.3",
-    "debug": "~2.6.9",
-    "express": "~4.16.0",
-    "http-errors": "~1.6.2",
-    "jade": "~1.11.0",
-    "morgan": "~1.9.0"
-  },
-  "description": "Collection Manager",
-  "main": "server.js",
-  "devDependencies": {},
-  "author": "",
-  "license": "ISC"
+    "name": "collector",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "node server.js",
+        "test": "mocha --exit"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "bcryptjs": "^2.4.0",
+        "body-parser": "^1.15.2",
+        "dotenv": "^4.0.0",
+        "express": "^4.14.0",
+        "jsonwebtoken": "^8.2.0",
+        "mongoose": "^5.0.6",
+        "morgan": "^1.7.0",
+        "passport": "^0.3.2",
+        "passport-jwt": "^2.2.1",
+        "passport-local": "^1.0.0"
+    },
+    "devDependencies": {
+        "chai": "^4.0.1",
+        "chai-http": "^3.0.0",
+        "faker": "^3.1.0",
+        "mocha": "^4.0.1"
+    }
 }
