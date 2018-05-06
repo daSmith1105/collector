@@ -1,41 +1,93 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+'use strict';
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const morgan = require('morgan');
+const passport = require('passport');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+const { router: usersRouter } = require('./users');
+const { router: authRouter, localStrategy, jwtStrategy } = require('./auth');
 
-var app = express();
+mongoose.Promise = global.Promise;
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+const { PORT, DATABASE_URL } = require('./config');
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+const app = express();
+
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+// Logging
+app.use(morgan('common'));
 
-// catch 404 and forward to error handler
+// CORS
 app.use(function(req, res, next) {
-  next(createError(404));
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE');
+    if (req.method === 'OPTIONS') {
+        return res.send(204);
+    }
+    next();
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+passport.use(localStrategy);
+passport.use(jwtStrategy);
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+app.use('/api/users/', usersRouter);
+app.use('/api/auth/', authRouter);
+
+const jwtAuth = passport.authenticate('jwt', { session: false });
+
+// A protected endpoint which needs a valid JWT to access it
+app.get('/api/protected', jwtAuth, (req, res) => {
+    return res.json({
+        data: 'rosebud'
+    });
 });
 
-module.exports = app;
+app.use('*', (req, res) => {
+    return res.status(404).json({ message: 'Not Found' });
+});
+
+// Referenced by both runServer and closeServer. closeServer
+// assumes runServer has run and set `server` to a server object
+let server;
+
+function runServer(databaseUrl, port = PORT) {
+
+    return new Promise((resolve, reject) => {
+        mongoose.connect(databaseUrl, err => {
+            if (err) {
+                return reject(err);
+            }
+            server = app.listen(port, () => {
+                    console.log(`Your app is listening on port ${port}`);
+                    resolve();
+                })
+                .on('error', err => {
+                    mongoose.disconnect();
+                    reject(err);
+                });
+        });
+    });
+}
+
+function closeServer() {
+    return mongoose.disconnect().then(() => {
+        return new Promise((resolve, reject) => {
+            console.log('Closing server');
+            server.close(err => {
+                if (err) {
+                    return reject(err);
+                }
+                resolve();
+            });
+        });
+    });
+}
+
+if (require.main === module) {
+    runServer(DATABASE_URL).catch(err => console.error(err));
+}
+
+module.exports = { app, runServer, closeServer };
